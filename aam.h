@@ -28,6 +28,8 @@ protected:
 
     Mat triangleMask;
     Mat triangleMasks; //each row contains the mask for single triangle
+    Mat alphaMap;
+    Mat betaMap;
 
     int steps;
 

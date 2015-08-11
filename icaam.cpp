@@ -45,7 +45,7 @@ float ICAAM::fit() {
     AAM::updateInverseWarp(deltaShapeParam);
 
     this->steps++;
-    cout<<"Steps: "<<this->steps<<endl;
+    //cout<<"Steps: "<<this->steps<<endl;
 
     return sum(abs(deltaShapeParam))[0]/deltaShapeParam.rows;
 }

@@ -78,8 +78,9 @@ void AAM::calcAppearanceData() {
         Mat image = trainingImages.at(i).clone();
 
         image = AAM::warpImageToModel(image, trainingShapes.col(i));
+        normalize(image, image, 0, 1, NORM_MINMAX, CV_32FC1, this->triangleMask);
 
-        normalize(image, image, 0, 1, NORM_MINMAX, CV_32FC1, this->triangleMask); //TODO: use mask to normalize only over values inside shape
+        waitKey();
 
         image = image.reshape(1,1).t();
 
@@ -424,6 +425,8 @@ void AAM::calcTriangleStructure(const Mat &s) {
 
 void AAM::calcTriangleMask() {
     Mat mask = Mat::zeros(this->modelHeight, this->modelWidth, CV_8UC1);
+    Mat aMap = Mat::zeros(this->modelHeight, this->modelWidth, CV_32FC1);
+    Mat bMap = Mat::zeros(this->modelHeight, this->modelWidth, CV_32FC1);
     Mat tMasks = Mat::zeros(this->triangles.rows, this->modelHeight*this->modelWidth, CV_8UC1);
     //Mat tmask = Mat::zeros(this->modelHeight, this->modelWidth, CV_32SC1);
 
@@ -446,7 +449,15 @@ void AAM::calcTriangleMask() {
 
         for(int row=min_y; row<max_y; row++) {
             for(int col=min_x; col<max_x; col++) {
-                if(this->isPointInTriangle(Point2f(col, row), pa, pb, pc)) {
+                Point2f px(col, row);
+
+                float den = (pb.x - pa.x)*(pc.y - pa.y)-(pb.y - pa.y)*(pc.x - pa.x);
+
+                float alpha = ((px.x - pa.x)*(pc.y - pa.y)-(px.y - pa.y)*(pc.x - pa.x))/den;
+                float beta = ((px.y - pa.y)*(pb.x - pa.x)-(px.x - pa.x)*(pb.y - pa.y))/den;
+                if((alpha >= 0) && (beta >= 0) && (alpha + beta <= 1)) {
+                    aMap.at<float>(row, col) = alpha;
+                    bMap.at<float>(row, col) = beta;
                     mask.at<unsigned char>(row,col) = i+1;
                     //tmask.at<int>(row,col) = i+1;
                     tMasks.at<unsigned char>(i, row*this->modelWidth+col) = 255;
@@ -457,6 +468,8 @@ void AAM::calcTriangleMask() {
 
     this->triangleMask = mask;
     this->triangleMasks = tMasks;
+    this->alphaMap = aMap;
+    this->betaMap = bMap;
 }
 
 bool AAM::isPointInTriangle(Point2f px, Point2f pa, Point2f pb, Point2f pc) {
@@ -485,13 +498,37 @@ Point2f AAM::getPointFromMat(const Mat &m, int pointId) {
 
 Mat AAM::warpImageToModel(const Mat &inputImage, const Mat &inputPoints) {
     Mat out = Mat::zeros(modelHeight, modelWidth, inputImage.type());
-    return warpImage(inputImage, inputPoints, out, this->s0);
+
+    for(int row=0; row<out.rows; row++) {
+        for(int col=0; col<out.cols; col++) {
+            int triId = this->triangleMask.at<unsigned char>(row, col)-1;
+            if(triId >= 0) {
+                Point2f srcTri[3];
+                int a,b,c;
+                a = this->triangles.at<int>(triId,0);
+                b = this->triangles.at<int>(triId,1);
+                c = this->triangles.at<int>(triId,2);
+
+                srcTri[0] = this->getPointFromMat(inputPoints, a);
+                srcTri[1] = this->getPointFromMat(inputPoints, b);
+                srcTri[2] = this->getPointFromMat(inputPoints, c);
+
+                Point px = srcTri[0] + this->alphaMap.fl(row, col)*(srcTri[1]-srcTri[0]) + this->betaMap.fl(row, col)*(srcTri[2]-srcTri[0]);
+
+                out.fl(row, col) = inputImage.fl(px.y, px.x);
+            }
+        }
+    }
+
+    return out;
+
+    //return warpImage(inputImage, inputPoints, out, this->s0);
 }
 
 Mat AAM::warpImage(const Mat &inputImage, const Mat &inputPoints, const Mat &outputImage, const Mat &outputPoints) {
     Mat warpedImage = outputImage;
-    int triSize = this->triangles.rows;
 
+    int triSize = this->triangles.rows;
     for(int i=0; i<triSize; i++) {
         Point2f srcTri[3], dstTri[3];
         int a,b,c;
