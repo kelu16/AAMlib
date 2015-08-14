@@ -36,6 +36,8 @@ protected:
     Mat fittingImage;
     Mat warpedImage;
     Mat errorImage;
+    Mat errorWeights;
+    Mat outliers;
     Mat fittingShape;
 
     Mat s0;
@@ -76,6 +78,7 @@ protected:
     void calcErrorImage();
 
     Mat calcWeights();
+    void calcErrorWeights();
 
     void updateAppearanceParameters(Mat deltaLambda);
     void updateInverseWarp(Mat deltaShapeParam);

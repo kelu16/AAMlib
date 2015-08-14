@@ -5,8 +5,8 @@
 AAM::AAM()
 {
     this->numPoints = 0;
-    this->numAppParameters = 0;
-    this->numShapeParameters = 0;
+    this->numAppParameters = 20;
+    this->numShapeParameters = 11;
     this->initialized = false;
     this->steps = 0;
 }
@@ -515,7 +515,9 @@ Mat AAM::warpImageToModel(const Mat &inputImage, const Mat &inputPoints) {
 
                 Point px = srcTri[0] + this->alphaMap.fl(row, col)*(srcTri[1]-srcTri[0]) + this->betaMap.fl(row, col)*(srcTri[2]-srcTri[0]);
 
-                out.fl(row, col) = inputImage.fl(px.y, px.x);
+                if((px.x >= 0 && px.x < inputImage.cols) && (px.y >= 0 && px.y < inputImage.rows)) {
+                    out.fl(row, col) = inputImage.fl(px.y, px.x);
+                }
             }
         }
     }
@@ -616,6 +618,8 @@ void AAM::setStartingShape(const Mat &shape) {
 }
 
 void AAM::resetShape() {
+    this->lambda = Mat::zeros(this->A.rows, 1, CV_32FC1);
+
     CascadeClassifier faceCascade;
     vector<Rect> faces;
     Mat detectImage;
@@ -827,57 +831,52 @@ void AAM::calcErrorImage() {
     this->errorImage = errorImage.reshape(1,1);
 }
 
+void AAM::calcErrorWeights() {
+    this->errorWeights = this->calcWeights();
+}
+
 Mat AAM::calcWeights() {
-    Mat img = this->errorImage.clone();
-    Mat i = img.clone();
+    Mat i = this->errorImage.clone();
 
-    double median = 0;
-    Mat Input = abs(img.reshape(1,1)); // spread Input Mat to single row
-    std::vector<double> vecFromMat;
+    float median = 0;
+    Mat Input = abs(i.reshape(1,1)); // spread Input Mat to single row
+    std::vector<float> vecFromMat;
     Input.copyTo(vecFromMat); // Copy Input Mat to vector vecFromMat
-    std::sort( vecFromMat.begin(), vecFromMat.end() ); // sort vecFromMat
 
-    int start=0;
-    for(unsigned int val=0; val<vecFromMat.size(); val++) {
-        if(vecFromMat[val] != 0) {
-            start = val;
-            break;
-        }
-    }
+    int start = this->triangleMask.rows*this->triangleMask.cols-countNonZero(this->triangleMask);
 
-    if (vecFromMat.size()%2==0) {
-        median = (vecFromMat[(vecFromMat.size()-start-1)/2+start]+vecFromMat[(vecFromMat.size()-start)/2+start])/2;
-    } else { // in case of even-numbered matrix
-        median = vecFromMat[(vecFromMat.size()-start-1)/2+start]; // odd-number of elements in matrix
-    }
+    nth_element(vecFromMat.begin(), vecFromMat.begin()+(vecFromMat.size()-start)/2+start, vecFromMat.end());
+    median = vecFromMat[(vecFromMat.size()-start)/2+start];
 
     //cout<<"Median: "<<median<<endl;
-    double standardDeviation = 1.4826*(1+5/(Input.cols-start - this->s.rows))*median;
+
+    float standardDeviation = 1.4826*(1+5/(Input.cols-start - this->s.rows))*median;
     //cout<<"Standard Deviation: "<<standardDeviation<<endl;
 
-    /*
-    Scalar mean, sd;
-    meanStdDev(i, mean, sd, this->triangleMask);
+    this->outliers = Mat::zeros(i.rows, i.cols, CV_32FC1);
 
-    cout<<mean<<sd<<endl;
-
-    standardDeviation = sd[0];
-    */
-
-    Mat outliers = Mat::zeros(i.rows, i.cols, CV_32FC1);
+    //float stdPi = 1/(standardDeviation*sqrt(2*M_PI));
+    //float stdSq = 2*standardDeviation*standardDeviation;
 
     for(int row=0; row<i.rows; row++) {
         for(int col=0; col<i.cols; col++) {
-            if(abs(i.fl(row, col)) < standardDeviation) {
+            float absValue = abs(i.fl(row, col));
+            if(absValue < standardDeviation) {
                 i.fl(row, col) = 1;
-            } else if(i.fl(row, col) < 3*standardDeviation) {
-                i.fl(row, col) = standardDeviation/abs(i.fl(row, col));
+            } else if(absValue < 3*standardDeviation) {
+                i.fl(row, col) = standardDeviation/absValue;
             } else {
                 i.fl(row, col) = 0;
-                outliers.fl(row, col) = 1.0f;
+                this->outliers.fl(row, col) = 1.0f;
             }
+            //i.fl(row, col) = (stdPi)*exp(-abs(i.fl(row, col))/(stdSq));
         }
     }
+
+    /*
+    namedWindow("WEIGHTS");
+    imshow("WEIGHTS", i.reshape(1, this->modelHeight));
+    */
 
     return i;
 }
