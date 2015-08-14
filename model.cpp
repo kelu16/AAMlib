@@ -190,7 +190,7 @@ Point2f Model::getPoint(int id) {
 
 int Model::findPointToPosition(Point p, int tolerance) {
     Point pos;
-    for(int i=0; i<=this->points.rows; i++) {
+    for(int i=0; i<this->points.rows; i++) {
         pos = Point((int)this->points.fl(i,0), (int)this->points.fl(i,1));
         if((abs(pos.x-(int)p.x) <= tolerance) && (abs(pos.y-(int)p.y) <= tolerance)) {
             return i;
