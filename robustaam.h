@@ -14,12 +14,12 @@ private:
 
     void calcErrorImage();
 
-    Mat calcAppeanceUpdate();
+    Mat calcAppearanceUpdate();
     Mat calcShapeUpdate();
-    Mat calcWeightedHessian(vector<Mat> triangleHessians);
+    Mat calcWeightedHessian(Mat triangleHessians);
 
-    vector<Mat> triangleShapeHessians;
-    vector<Mat> triangleAppHessians;
+    Mat triangleShapeHessians;
+    Mat triangleAppHessians;
 
 public:
     RobustAAM();
