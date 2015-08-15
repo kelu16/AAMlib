@@ -437,9 +437,9 @@ void AAM::calcTriangleMask() {
         c = this->triangles.at<int>(i,2);
 
         Point2f pa,pb,pc;
-        pa = AAM::getPointFromMat(this->s0, a);
-        pb = AAM::getPointFromMat(this->s0, b);
-        pc = AAM::getPointFromMat(this->s0, c);
+        pa = this->getPointFromMat(this->s0, a);
+        pb = this->getPointFromMat(this->s0, b);
+        pc = this->getPointFromMat(this->s0, c);
 
         //Bereich des Dreiecks berechnen um nicht ganzes Bild zu durchsuchen
         int min_x = floor(min(pa.x, min(pb.x, pc.x)));
@@ -523,8 +523,6 @@ Mat AAM::warpImageToModel(const Mat &inputImage, const Mat &inputPoints) {
     }
 
     return out;
-
-    //return warpImage(inputImage, inputPoints, out, this->s0);
 }
 
 Mat AAM::warpImage(const Mat &inputImage, const Mat &inputPoints, const Mat &outputImage, const Mat &outputPoints) {
@@ -546,57 +544,32 @@ Mat AAM::warpImage(const Mat &inputImage, const Mat &inputPoints, const Mat &out
         dstTri[1] = this->getPointFromMat(outputPoints, b);
         dstTri[2] = this->getPointFromMat(outputPoints, c);
 
-        warpTextureFromTriangle(srcTri, inputImage, dstTri, warpedImage);
+        //Bereich des Dreiecks berechnen um nicht ganzes Bild zu durchsuchen
+        int min_x = floor(min(dstTri[0].x, min(dstTri[1].x, dstTri[2].x)));
+        int max_x = ceil(max(dstTri[0].x, max(dstTri[1].x, dstTri[2].x)));
+        int min_y = floor(min(dstTri[0].y, min(dstTri[1].y, dstTri[2].y)));
+        int max_y = ceil(max(dstTri[0].y, max(dstTri[1].y, dstTri[2].y)));
+
+        for(int row=min_y; row<max_y; row++) {
+            for(int col=min_x; col<max_x; col++) {
+                Point px(col, row);
+                float den = (dstTri[1].x - dstTri[0].x)*(dstTri[2].y - dstTri[0].y)-(dstTri[1].y - dstTri[0].y)*(dstTri[2].x - dstTri[0].x);
+
+                float alpha = ((px.x - dstTri[0].x)*(dstTri[2].y - dstTri[0].y)-(px.y - dstTri[0].y)*(dstTri[2].x - dstTri[0].x))/den;
+                float beta = ((px.y - dstTri[0].y)*(pb.x - dstTri[0].x)-(px.x - dstTri[0].x)*(dstTri[1].y - dstTri[0].y))/den;
+
+                if((alpha >= 0) && (beta >= 0) && (alpha + beta <= 1)) {
+                    Point pxa = srcTri[0] + alpha*(srcTri[1]-srcTri[0]) + beta*(srcTri[2]-srcTri[0]);
+
+                    if((pxa.x >= 0 && pxa.x < inputImage.cols) && (pxa.y >= 0 && pxa.y < inputImage.rows)) {
+                        warpedImage.fl(row, col) = inputImage.fl(pxa.y, pxa.x);
+                    }
+                }
+            }
+        }
     }
 
     return warpedImage;
-}
-
-void AAM::warpTextureFromTriangle(Point2f srcTri[], const Mat &originalImage, Point2f dstTri[], Mat warp_final) {
-    Mat warp_mat(2, 3, CV_32FC1);
-    Mat warp_dst, warp_mask, srcImg;
-    int smoothingParam = 1;
-
-    int min_x_src = floor(min(srcTri[0].x, min(srcTri[1].x, srcTri[2].x)));
-    int max_x_src = ceil(max(srcTri[0].x, max(srcTri[1].x, srcTri[2].x)));
-    int min_y_src = floor(min(srcTri[0].y, min(srcTri[1].y, srcTri[2].y)));
-    int max_y_src = ceil(max(srcTri[0].y, max(srcTri[1].y, srcTri[2].y)));
-
-    int src_size_x = max(max_x_src - min_x_src,1)+2*smoothingParam;
-    int src_size_y = max(max_y_src - min_y_src,1)+2*smoothingParam;
-
-    srcImg = originalImage(cv::Rect_<int>(min_x_src-smoothingParam,min_y_src-smoothingParam,src_size_x,src_size_y));
-    for(int i=0; i<3; i++) {
-        srcTri[i] -= Point2f(min_x_src-smoothingParam, min_y_src-smoothingParam);
-    }
-
-    int min_x_dst = floor(min(dstTri[0].x, min(dstTri[1].x, dstTri[2].x)));
-    int max_x_dst = ceil(max(dstTri[0].x, max(dstTri[1].x, dstTri[2].x)));
-    int min_y_dst = floor(min(dstTri[0].y, min(dstTri[1].y, dstTri[2].y)));
-    int max_y_dst = ceil(max(dstTri[0].y, max(dstTri[1].y, dstTri[2].y)));
-
-    int dst_size_x = max_x_dst - min_x_dst;
-    int dst_size_y = max_y_dst - min_y_dst;
-
-    for(int i=0; i<3; i++) {
-        dstTri[i] -= Point2f(min_x_dst, min_y_dst);
-    }
-
-    Point triPoints[3];
-    triPoints[0] = dstTri[0];
-    triPoints[1] = dstTri[1];
-    triPoints[2] = dstTri[2];
-
-    warp_dst = Mat::zeros(dst_size_y, dst_size_x, originalImage.type());
-    warp_mask = Mat::zeros(dst_size_y, dst_size_x, CV_8U);
-
-    // Get the Affine Transform
-    warp_mat = getAffineTransform(srcTri, dstTri);
-
-    // Apply the Affine Transform to the src image
-    warpAffine(srcImg, warp_dst, warp_mat, warp_dst.size());
-    fillConvexPoly(warp_mask, triPoints, 3, Scalar(255,255,255), CV_AA, 0);
-    warp_dst.copyTo(warp_final(cv::Rect_<int>(min_x_dst, min_y_dst, dst_size_x, dst_size_y)), warp_mask);
 }
 
 void AAM::setNumShapeParameters(int num) {
