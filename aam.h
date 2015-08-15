@@ -61,8 +61,6 @@ protected:
     Mat moveToOrigin(const Mat &A);
     Point2f calcMean(const Mat &A);
 
-    void warpTextureFromTriangle(Point2f srcTri[3], const Mat &originalImage, Point2f dstTri[3], Mat warp_final);
-
     bool isPointInTriangle(Point2f px, Point2f pa, Point2f pb, Point2f pc);
     void calcTriangleStructure(const Mat &s);
     void calcTriangleMask();

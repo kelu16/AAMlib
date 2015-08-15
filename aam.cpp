@@ -556,7 +556,7 @@ Mat AAM::warpImage(const Mat &inputImage, const Mat &inputPoints, const Mat &out
                 float den = (dstTri[1].x - dstTri[0].x)*(dstTri[2].y - dstTri[0].y)-(dstTri[1].y - dstTri[0].y)*(dstTri[2].x - dstTri[0].x);
 
                 float alpha = ((px.x - dstTri[0].x)*(dstTri[2].y - dstTri[0].y)-(px.y - dstTri[0].y)*(dstTri[2].x - dstTri[0].x))/den;
-                float beta = ((px.y - dstTri[0].y)*(pb.x - dstTri[0].x)-(px.x - dstTri[0].x)*(dstTri[1].y - dstTri[0].y))/den;
+                float beta = ((px.y - dstTri[0].y)*(dstTri[1].x - dstTri[0].x)-(px.x - dstTri[0].x)*(dstTri[1].y - dstTri[0].y))/den;
 
                 if((alpha >= 0) && (beta >= 0) && (alpha + beta <= 1)) {
                     Point pxa = srcTri[0] + alpha*(srcTri[1]-srcTri[0]) + beta*(srcTri[2]-srcTri[0]);
