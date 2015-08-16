@@ -4,6 +4,7 @@
 
 RobustAAM::RobustAAM()
 {
+    this->type = "RobustAAM";
 }
 
 void RobustAAM::train() {
@@ -53,6 +54,11 @@ float RobustAAM::fit() {
     //high_resolution_clock::time_point end_updateWarp = high_resolution_clock::now();
     //cout<<"Update Warp: "<<duration_cast<microseconds>(end_updateWarp-end_calcShapeParam).count()<<endl;
 
+    /*
+    namedWindow("Outliers");
+    imshow("Outliers", this->outliers.reshape(1,this->modelHeight));
+    */
+
     Mat parameterUpdates;
     vconcat(deltaLambda, deltaShapeParam, parameterUpdates);
     return sum(abs(parameterUpdates))[0]/parameterUpdates.rows;
@@ -87,8 +93,6 @@ void RobustAAM::calcTriangleHessians() {
         Mat AppHessian = appSdImg*appSdImg.t();
         AppHessian.reshape(1,1).copyTo(this->triangleAppHessians.row(i));
     }
-
-    cout<<triangleAppHessians<<endl;
 }
 
 Mat RobustAAM::calcWeightedHessian(Mat triangleHessians) {
@@ -162,4 +166,30 @@ Mat RobustAAM::calcShapeUpdate() {
     Mat inv = -shapeHessian.inv();
 
     return inv*result;
+}
+
+void RobustAAM::saveDataToFile(string fileName) {
+    FileStorage fs(fileName, FileStorage::WRITE);
+
+    AAM::saveDataToFileStorage(fs);
+
+    fs << "triangleShapeHessians" << this->triangleShapeHessians;
+    fs << "triangleAppHessians" << this->triangleAppHessians;
+
+    fs.release();
+}
+
+void RobustAAM::loadDataFromFile(string fileName) {
+    FileStorage fs(fileName, FileStorage::READ);
+
+    if(!AAM::loadDataFromFileStorage(fs)) {
+        return;
+    }
+
+    fs["triangleShapeHessians"] >> this->triangleShapeHessians;
+    fs["triangleAppHessians"] >> this->triangleAppHessians;
+
+    fs.release();
+
+    this->initialized = true;
 }

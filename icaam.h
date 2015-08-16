@@ -21,12 +21,10 @@ public:
     Mat R;  //Inverse Hessian * Transposed SteepestDescentImages
 
     void train();
-
-    //From aamfit
-    int steps_global;
-    int steps_shape;
-
     float fit();
+
+    void loadDataFromFile(string fileName);
+    void saveDataToFile(string fileName);
 };
 
 #endif // AAM_H

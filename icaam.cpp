@@ -4,6 +4,7 @@
 
 ICAAM::ICAAM():AAM()
 {
+    this->type = "ICAAM";
 }
 
 void ICAAM::train() {
@@ -48,4 +49,28 @@ float ICAAM::fit() {
     //cout<<"Steps: "<<this->steps<<endl;
 
     return sum(abs(deltaShapeParam))[0]/deltaShapeParam.rows;
+}
+
+void ICAAM::saveDataToFile(string fileName) {
+    FileStorage fs(fileName, FileStorage::WRITE);
+
+    AAM::saveDataToFileStorage(fs);
+
+    fs << "R" << this->R;
+
+    fs.release();
+}
+
+void ICAAM::loadDataFromFile(string fileName) {
+    FileStorage fs(fileName, FileStorage::READ);
+
+    if(!AAM::loadDataFromFileStorage(fs)) {
+        return;
+    }
+
+    fs["R"] >> this->R;
+
+    fs.release();
+
+    this->initialized = true;
 }

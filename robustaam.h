@@ -26,6 +26,9 @@ public:
 
     void train();
     float fit();
+
+    void loadDataFromFile(string fileName);
+    void saveDataToFile(string fileName);
 };
 
 #endif // ROBUSTAAM_H

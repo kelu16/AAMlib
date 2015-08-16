@@ -4,6 +4,7 @@
 
 WSICAAM::WSICAAM()
 {
+    this->type = "WSICAAM";
 }
 
 void WSICAAM::train() {
@@ -48,4 +49,24 @@ float WSICAAM::fit() {
     this->steps++;
     cout<<"Step: "<<this->steps<<endl;
     return sum(abs(deltaq))[0]/deltaq.rows;
+}
+
+void WSICAAM::saveDataToFile(string fileName) {
+    FileStorage fs(fileName, FileStorage::WRITE);
+
+    AAM::saveDataToFileStorage(fs);
+
+    fs.release();
+}
+
+void WSICAAM::loadDataFromFile(string fileName) {
+    FileStorage fs(fileName, FileStorage::READ);
+
+    if(!AAM::loadDataFromFileStorage(fs)) {
+        return;
+    }
+
+    fs.release();
+
+    this->initialized = true;
 }

@@ -14,6 +14,8 @@ using namespace std::chrono;
 class AAM
 {
 protected:
+    string type="";
+
     Mat trainingShapes;
     Mat trainingImagesRows;
     vector<Mat> trainingImages;
@@ -64,6 +66,7 @@ protected:
     bool isPointInTriangle(Point2f px, Point2f pa, Point2f pb, Point2f pc);
     void calcTriangleStructure(const Mat &s);
     void calcTriangleMask();
+    void calcTriangleLookup();
     void calcShapeData();
     void calcAppearanceData();
     void calcGradients();
@@ -112,6 +115,12 @@ public:
 
     virtual void train() = 0;
     virtual float fit() = 0;
+
+    bool saveDataToFileStorage(FileStorage fs);
+    bool loadDataFromFileStorage(FileStorage fs);
+
+    virtual void saveDataToFile(string fileName) = 0;
+    virtual void loadDataFromFile(string fileName) = 0;
 };
 
 #endif // AAM_H

@@ -5,8 +5,8 @@
 AAM::AAM()
 {
     this->numPoints = 0;
-    this->numAppParameters = 20;
-    this->numShapeParameters = 11;
+    this->numAppParameters = 0;
+    this->numShapeParameters = 0;
     this->initialized = false;
     this->steps = 0;
 }
@@ -79,8 +79,6 @@ void AAM::calcAppearanceData() {
 
         image = AAM::warpImageToModel(image, trainingShapes.col(i));
         normalize(image, image, 0, 1, NORM_MINMAX, CV_32FC1, this->triangleMask);
-
-        waitKey();
 
         image = image.reshape(1,1).t();
 
@@ -423,6 +421,25 @@ void AAM::calcTriangleStructure(const Mat &s) {
     this->triangles = this->triangles(cv::Rect(0,0,3,counter));
 }
 
+void AAM::calcTriangleLookup() {
+    this->triangleLookup.clear();
+    for(int i=0; i<this->numPoints; i++) {
+        vector <int> temp;
+        this->triangleLookup.push_back(temp);
+    }
+
+    for(int i=0; i<this->triangles.rows; i++) {
+        int posA, posB, posC;
+        posA = this->triangles.at<int>(i, 0);
+        posB = this->triangles.at<int>(i, 1);
+        posC = this->triangles.at<int>(i, 2);
+
+        this->triangleLookup[posA].push_back(i);
+        this->triangleLookup[posB].push_back(i);
+        this->triangleLookup[posC].push_back(i);
+    }
+}
+
 void AAM::calcTriangleMask() {
     Mat mask = Mat::zeros(this->modelHeight, this->modelWidth, CV_8UC1);
     Mat aMap = Mat::zeros(this->modelHeight, this->modelWidth, CV_32FC1);
@@ -671,11 +688,11 @@ double AAM::getErrorPerPixel() {
 }
 
 Mat AAM::getErrorImage() {
-    return this->errorImage;
+    return this->errorImage.clone();
 }
 
 Mat AAM::getFittingShape() {
-    return this->fittingShape;
+    return this->fittingShape.clone();
 }
 
 void AAM::setFirstPoint(int id, int &a, int &b, int &c) {
@@ -861,4 +878,68 @@ bool AAM::isInitialized() {
 
 bool AAM::hasFittingImage() {
     return !this->fittingImage.empty();
+}
+
+bool AAM::saveDataToFileStorage(FileStorage fs) {
+    fs << "type" << this->type;
+
+    fs << "s0" << this->s0;
+    fs << "s" << this->s;
+    fs << "s_star" << this->s_star;
+
+    fs << "A0" << this->A0;
+    fs << "A" << this->A;
+
+    fs << "numPoints" << this->numPoints;
+    fs << "modelHeight" << this->modelHeight;
+    fs << "modelWidth" << this->modelWidth;
+
+    fs << "triangles" << this->triangles;
+    fs << "triangleMask" << this->triangleMask;
+    fs << "alphaMap" << this->alphaMap;
+    fs << "betaMap" << this->betaMap;
+
+    fs << "gradX" << this->gradX;
+    fs << "gradY" << this->gradY;
+    fs << "gradXA" << this->gradXA;
+    fs << "gradYA" << this->gradYA;
+    fs << "jacobians" << this->jacobians;
+    fs << "steepestDescentImages" << this->steepestDescentImages;
+
+    return true;
+}
+
+bool AAM::loadDataFromFileStorage(FileStorage fs) {
+    if(fs["type"] != this->type) {
+        cout<<"Wrong AAM type"<<endl;
+        return false;
+    }
+
+    fs["s0"] >> this->s0;
+    fs["s"] >> this->s;
+    fs["s_star"] >> this->s_star;
+
+    fs["A0"] >> this->A0;
+    fs["A"] >> this->A;
+
+    fs["numPoints"] >> this->numPoints;
+    fs["modelHeight"] >> this->modelHeight;
+    fs["modelWidth"] >> this->modelWidth;
+
+    fs["triangles"] >> this->triangles;
+    fs["triangleMask"] >> this->triangleMask;
+    fs["alphaMap"] >> this->alphaMap;
+    fs["betaMap"] >> this->betaMap;
+
+    fs["gradX"] >> this->gradX;
+    fs["gradY"] >> this->gradY;
+    fs["gradXA"] >> this->gradXA;
+    fs["gradYA"] >> this->gradYA;
+    fs["jacobians"] >> this->jacobians;
+    fs["steepestDescentImages"] >> this->steepestDescentImages;
+
+    this->lambda = Mat::zeros(this->A.rows, 1, CV_32FC1);
+    this->calcTriangleLookup();
+
+    return true;
 }
