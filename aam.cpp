@@ -4,11 +4,6 @@
 
 AAM::AAM()
 {
-    this->numPoints = 0;
-    this->numAppParameters = 0;
-    this->numShapeParameters = 0;
-    this->initialized = false;
-    this->steps = 0;
 }
 
 void AAM::addTrainingData(const Mat &shape, const Mat &image) {
@@ -49,12 +44,11 @@ void AAM::calcShapeData() {
     this->s = shapePCA.eigenvectors;
 
     if(!(this->numShapeParameters > 0  && this->numShapeParameters <= this->s.rows)) {
-        float targetVariance = 0.95f;
         float sumVariance = sum(shapePCA.eigenvalues)[0];
         float variance = 0.0f;
         for(int i=0; i<shapePCA.eigenvalues.rows; i++) {
             variance += shapePCA.eigenvalues.fl(i);
-            if(variance/sumVariance >= targetVariance) {
+            if(variance/sumVariance >= this->targetShapeVariance) {
                 cout<<"Num Shape Parameters: "<<i<<endl;
                 this->numShapeParameters = i;
                 break;
@@ -109,12 +103,11 @@ void AAM::calcAppearanceData() {
     this->A = appearancePCA.eigenvectors;
 
     if(!(this->numAppParameters > 0  && this->numAppParameters <= this->s.rows)) {
-        float targetVariance = 0.95f;
         float sumVariance = sum(appearancePCA.eigenvalues)[0];
         float variance = 0.0f;
         for(int i=0; i<appearancePCA.eigenvalues.rows; i++) {
             variance += appearancePCA.eigenvalues.fl(i);
-            if(variance/sumVariance >= targetVariance) {
+            if(variance/sumVariance >= this->targetAppVariance) {
                 cout<<"Num Appearance Parameters: "<<i<<endl;
                 this->numAppParameters = i;
                 break;

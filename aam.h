@@ -20,13 +20,13 @@ protected:
     Mat trainingImagesRows;
     vector<Mat> trainingImages;
 
-    bool initialized;
+    bool initialized = false;
 
     int numShapeParameters = 0;
     int numAppParameters= 0;
     float targetShapeVariance = 0.95f;
     float targetAppVariance = 0.95f;
-    int numPoints;
+    int numPoints = 0;
     int modelWidth;
     int modelHeight;
 
