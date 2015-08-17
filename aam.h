@@ -22,8 +22,10 @@ protected:
 
     bool initialized;
 
-    int numShapeParameters;
-    int numAppParameters;
+    int numShapeParameters = 0;
+    int numAppParameters= 0;
+    float targetShapeVariance = 0.95f;
+    float targetAppVariance = 0.95f;
     int numPoints;
     int modelWidth;
     int modelHeight;
@@ -33,7 +35,7 @@ protected:
     Mat alphaMap;
     Mat betaMap;
 
-    int steps;
+    int steps = 0;
 
     Mat fittingImage;
     Mat warpedImage;
@@ -99,6 +101,8 @@ public:
 
     void setNumShapeParameters(int num);
     void setNumAppParameters(int num);
+    void setTargetShapeVariance(float var);
+    void setTargetAppVariance(float var);
 
     void setFittingImage(const Mat &fittingImage);
     void setStartingShape(const Mat &shape);

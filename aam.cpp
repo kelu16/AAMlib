@@ -48,6 +48,20 @@ void AAM::calcShapeData() {
     this->numPoints = s0.rows/2;
     this->s = shapePCA.eigenvectors;
 
+    if(!(this->numShapeParameters > 0  && this->numShapeParameters <= this->s.rows)) {
+        float targetVariance = 0.95f;
+        float sumVariance = sum(shapePCA.eigenvalues)[0];
+        float variance = 0.0f;
+        for(int i=0; i<shapePCA.eigenvalues.rows; i++) {
+            variance += shapePCA.eigenvalues.fl(i);
+            if(variance/sumVariance >= targetVariance) {
+                cout<<"Num Shape Parameters: "<<i<<endl;
+                this->numShapeParameters = i;
+                break;
+            }
+        }
+    }
+
     if(this->numShapeParameters > 0 && this->numShapeParameters <= this->s.rows) {
         this->s = this->s(cv::Rect(0,0,this->s.cols, this->numShapeParameters));
     }
@@ -92,8 +106,21 @@ void AAM::calcAppearanceData() {
                         );
 
     this->A0 = appearancePCA.mean;
-    //normalize(this->A0, this->A0, 0, 1, NORM_MINMAX, CV_32FC1);
     this->A = appearancePCA.eigenvectors;
+
+    if(!(this->numAppParameters > 0  && this->numAppParameters <= this->s.rows)) {
+        float targetVariance = 0.95f;
+        float sumVariance = sum(appearancePCA.eigenvalues)[0];
+        float variance = 0.0f;
+        for(int i=0; i<appearancePCA.eigenvalues.rows; i++) {
+            variance += appearancePCA.eigenvalues.fl(i);
+            if(variance/sumVariance >= targetVariance) {
+                cout<<"Num Appearance Parameters: "<<i<<endl;
+                this->numAppParameters = i;
+                break;
+            }
+        }
+    }
 
     if(this->numAppParameters > 0 && this->numAppParameters <= this->A.rows) {
         this->A = this->A(cv::Rect(0,0,this->A.cols, this->numAppParameters));
@@ -595,6 +622,14 @@ void AAM::setNumShapeParameters(int num) {
 
 void AAM::setNumAppParameters(int num) {
     this->numAppParameters = num;
+}
+
+void AAM::setTargetShapeVariance(float var) {
+    this->targetShapeVariance = var;
+}
+
+void AAM::setTargetAppVariance(float var) {
+    this->targetAppVariance = var;
 }
 
 void AAM::setFittingImage(const Mat &fittingImage) {
