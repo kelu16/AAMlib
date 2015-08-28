@@ -204,7 +204,7 @@ int Model::findPointToPosition(Point p) {
 }
 
 void Model::moveSelectedVertices(float dx, float dy) {
-    for(int i=0; i<=this->points.rows; i++) {
+    for(int i=0; i<this->points.rows; i++) {
         if(this->selected.fl(i,0) == 1) {
             this->points.fl(i,0) -= dx;
             this->points.fl(i,1) -= dy;
