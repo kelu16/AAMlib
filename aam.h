@@ -5,6 +5,17 @@
 #include <chrono>
 #include <typeinfo>
 
+#define AAM_ERR_CAUCHY 1
+#define AAM_ERR_HUBER 2
+#define AAM_ERR_WELSCH 3
+#define AAM_ERR_TUKEY 4
+#define AAM_ERR_EXPONENTIAL 5
+#define AAM_ERR_GEMANMCCLURE 6
+
+#define AAM_PREPROC_TANTRIGGS 1
+#define AAM_PREPROC_RETINEX 2
+#define AAM_PREPROC_DISTANCEMAPS 3
+#define AAM_PREPROC_HISTOGRAMMATCHING 4
 
 using namespace cv;
 using namespace std;
@@ -21,14 +32,19 @@ protected:
     vector<Mat> trainingImages;
 
     bool initialized = false;
+    bool preprocessImages = false;
 
     int numShapeParameters = 0;
     int numAppParameters= 0;
+    float standardDeviation;
     float targetShapeVariance = 0.95f;
     float targetAppVariance = 0.95f;
     int numPoints = 0;
     int modelWidth;
     int modelHeight;
+
+    int errorFunction = AAM_ERR_TUKEY;
+    int preprocessingMethod = AAM_PREPROC_DISTANCEMAPS;
 
     Mat triangleMask;
     Mat triangleMasks; //each row contains the mask for single triangle
@@ -38,6 +54,7 @@ protected:
     int steps = 0;
 
     Mat fittingImage;
+    Mat preprocessedImage;
     Mat warpedImage;
     Mat errorImage;
     Mat errorWeights;
@@ -104,15 +121,28 @@ public:
     void setTargetShapeVariance(float var);
     void setTargetAppVariance(float var);
 
+    void setPreprocessImages(bool on);
+
     void setFittingImage(const Mat &fittingImage);
     void setStartingShape(const Mat &shape);
-    void resetShape();
+    void resetShape(float scalingParameter = 0.8);
+    void resetParameters();
     Mat getFittingShape();
     Mat getErrorImage();
     double getErrorPerPixel();
+    Mat getA0();
 
     Mat getAppearanceReconstruction();
     Mat getAppearanceReconstructionOnFittingImage();
+
+    Mat tanTriggsPreprocessing(InputArray src, float alpha = 0.1, float tau = 10.0, float gamma = 0.2, int sigma0 = 1, int sigma1 = 2);
+    Mat retinex(Mat image, int kernelSize);
+    Mat multiscaleRetinex(Mat image);
+    Mat histogramFitting(Mat I, Mat R);
+    Mat distanceMaps(Mat I);
+
+    void setErrorFunction(int function);
+    void setProcessingMethod(int method);
 
     bool isInitialized();
     bool hasFittingImage();
