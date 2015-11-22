@@ -1,3 +1,8 @@
+/*
+ * Implementation of the Efficient Robust Normalization algorithm as described in:
+ * R. Gross, I. Matthews, S. Baker: Active Appearance Models with Occlusion
+ */
+
 #ifndef ROBUSTAAM_H
 #define ROBUSTAAM_H
 

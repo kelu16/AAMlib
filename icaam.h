@@ -1,3 +1,8 @@
+/*
+ * Implementation of the Project-Out Inverse Compositional algorithm as described in:
+ * I. Matthews, S. Baker: Active Appearance Models revisited
+ */
+
 #ifndef ICAAM_H
 #define ICAAM_H
 
@@ -9,19 +14,23 @@ using namespace std;
 
 #define fl at<float>
 
-//Inverse Compositional AAM
 class ICAAM: public AAM
 {
 private:
     void projectOutAppearanceVariation();
+    void calcErrorImage();
+    void calcAppearanceParameters();
+
+    Mat R;  //Inverse Hessian * Transposed SteepestDescentImages
 
 public:
     ICAAM();
 
-    Mat R;  //Inverse Hessian * Transposed SteepestDescentImages
-
     void train();
     float fit();
+
+    Mat getAppearanceReconstructionOnFittingImage();
+    double getErrorPerPixel();
 
     void loadDataFromFile(string fileName);
     void saveDataToFile(string fileName);

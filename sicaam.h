@@ -1,3 +1,8 @@
+/*
+ * Implementation of the Simultaneous Inverse Compositional algorithm as described in:
+ * R. Gross, I. Matthews, S. Baker:  Generic vs. Person Specific Active Appearance Models
+ */
+
 #ifndef SICAAM_H
 #define SICAAM_H
 
