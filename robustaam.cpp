@@ -21,43 +21,15 @@ void RobustAAM::train() {
 }
 
 float RobustAAM::fit() {
-    //high_resolution_clock::time_point start_warpImage = high_resolution_clock::now();
     AAM::calcWarpedImage();
-    //high_resolution_clock::time_point end_warpImage = high_resolution_clock::now();
-    //cout<<"Warp Image: "<<duration_cast<microseconds>(end_warpImage-start_warpImage).count()<<endl;
     AAM::calcErrorImage();
-    //high_resolution_clock::time_point end_calcErrorImage = high_resolution_clock::now();
-    //cout<<"Calc Error Image: "<<duration_cast<microseconds>(end_calcErrorImage-end_warpImage).count()<<endl;
     AAM::calcErrorWeights();
-    //high_resolution_clock::time_point end_calcWeights = high_resolution_clock::now();
-    //cout<<"Calc Weights: "<<duration_cast<microseconds>(end_calcWeights-end_calcErrorImage).count()<<endl;
 
     Mat deltaLambda = this->calcAppearanceUpdate();
-    //high_resolution_clock::time_point end_calcAppUpdate = high_resolution_clock::now();
-    //cout<<"Calc App Update: "<<duration_cast<microseconds>(end_calcAppUpdate-end_calcWeights).count()<<endl;
     AAM::updateAppearanceParameters(deltaLambda);
-    //high_resolution_clock::time_point end_appUpdate = high_resolution_clock::now();
-    //cout<<"App Update: "<<duration_cast<microseconds>(end_appUpdate-end_calcAppUpdate).count()<<endl;
-
-    //AAM::calcErrorImage();
-    //high_resolution_clock::time_point end_calcErrorImage2 = high_resolution_clock::now();
-    //cout<<"Calc Error Image: "<<duration_cast<microseconds>(end_calcErrorImage2-end_appUpdate).count()<<endl;
-    //AAM::calcErrorWeights();
-    //high_resolution_clock::time_point end_calcWeights2 = high_resolution_clock::now();
-    //cout<<"Calc Weights: "<<duration_cast<microseconds>(end_calcWeights2-end_calcErrorImage2).count()<<endl;
 
     Mat deltaShapeParam = this->calcShapeUpdate();
-    //high_resolution_clock::time_point end_calcShapeParam = high_resolution_clock::now();
-    //cout<<"Calc Shape Param: "<<duration_cast<microseconds>(end_calcShapeParam-end_calcWeights2).count()<<endl;
-
     AAM::updateInverseWarp(deltaShapeParam);
-    //high_resolution_clock::time_point end_updateWarp = high_resolution_clock::now();
-    //cout<<"Update Warp: "<<duration_cast<microseconds>(end_updateWarp-end_calcShapeParam).count()<<endl;
-
-    /*
-    namedWindow("Outliers");
-    imshow("Outliers", this->outliers.reshape(1,this->modelHeight));
-    */
 
     Mat parameterUpdates;
     vconcat(deltaLambda, deltaShapeParam, parameterUpdates);
@@ -68,8 +40,10 @@ void RobustAAM::calcTriangleHessians() {
     this->triangleAppHessians = Mat::zeros(this->triangles.rows, this->A.rows*this->A.rows, CV_32FC1);
     this->triangleShapeHessians = Mat::zeros(this->triangles.rows, this->steepestDescentImages.rows*this->steepestDescentImages.rows, CV_32FC1);
 
+    cout<<"Starting to build Triangle Hessians"<<flush;
     for(int i=0; i<this->triangles.rows; i++) {
-        cout<<"calcTriangleHessian "<<i<<endl;
+        cout<<"."<<flush;
+        //cout<<"calcTriangleHessian "<<i<<endl;
         Mat sdImg = this->steepestDescentImages.clone();
         Mat appSdImg = this->A.clone();
 
@@ -93,6 +67,7 @@ void RobustAAM::calcTriangleHessians() {
         Mat AppHessian = appSdImg*appSdImg.t();
         AppHessian.reshape(1,1).copyTo(this->triangleAppHessians.row(i));
     }
+    cout<<endl;
 }
 
 Mat RobustAAM::calcWeightedHessian(Mat triangleHessians) {
